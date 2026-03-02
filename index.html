@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <title>SuperScan - Supermarket Platformer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a0f;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      width: 100vw;
+      height: 100vh;
+      max-width: 1280px;
+      max-height: 720px;
+      object-fit: contain;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="canvas1"></canvas>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
