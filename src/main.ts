@@ -10,6 +10,7 @@ import { Enemy } from './game/Enemy.js';
 import { ScannerBeam } from './game/ScannerBeam.js';
 import { ParticleSystem } from './game/Particles.js';
 import { HUD } from './game/HUD.js';
+import { Leaderboard } from './game/Leaderboard.js';
 
 // ─── Constants ──────────────────────────────────────────────────
 const W = 384;
@@ -32,6 +33,10 @@ const sprites = createAllSprites();
 
 let state: State = 'title';
 let titleTimer = 0;
+const leaderboard = new Leaderboard();
+let victoryPhase: 'enter_name' | 'show_board' = 'enter_name';
+let playerInitials = '';
+let nameBlinkTimer = 0;
 let level: Level;
 let camera: Camera;
 let player: Player;
@@ -67,9 +72,32 @@ function update(dt: number): void {
       updatePlaying(dt);
       break;
     case 'gameover':
-    case 'victory':
       if (input.start) { state = 'title'; titleTimer = 0; }
       break;
+    case 'victory':
+      nameBlinkTimer += dt;
+      if (victoryPhase === 'enter_name') {
+        updateNameEntry();
+      } else {
+        if (input.start) { state = 'title'; titleTimer = 0; }
+      }
+      break;
+  }
+}
+
+function updateNameEntry(): void {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for (const letter of letters) {
+    if (input.keyJustPressed(letter) && playerInitials.length < 3) {
+      playerInitials += letter;
+    }
+  }
+  if (input.keyJustPressed('Backspace') && playerInitials.length > 0) {
+    playerInitials = playerInitials.slice(0, -1);
+  }
+  if (input.start && playerInitials.length > 0) {
+    leaderboard.addScore(playerInitials, player.score);
+    victoryPhase = 'show_board';
   }
 }
 
@@ -110,7 +138,7 @@ function updatePlaying(dt: number): void {
         player.score += 100;
         camera.shake(3, 0.15);
         audio.hit();
-        particles.burst(enemy.x + 8, enemy.y + 8, 12, enemy.type === 'apple' ? '#F44336' : '#FF8F00');
+        particles.burst(enemy.x + 8, enemy.y + 8, 12, enemy.type === 'can' ? '#F44336' : '#FF8F00');
       }
     }
   }
@@ -151,6 +179,9 @@ function updatePlaying(dt: number): void {
   // Victory (reach checkout area at the end)
   if (player.x > level.widthPx - 100) {
     state = 'victory';
+    victoryPhase = 'enter_name';
+    playerInitials = '';
+    nameBlinkTimer = 0;
     audio.victory();
   }
 }
@@ -297,8 +328,10 @@ function renderTitle(ctx: CanvasRenderingContext2D): void {
     ctx.fillText('PRESS ENTER TO START', W / 2, 145);
   }
 
-  // Controls
-  ctx.fillStyle = '#90A4AE';
+  // Controls - dark backdrop for legibility
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(W / 2 - 130, 160, 260, 30);
+  ctx.fillStyle = '#E0E0E0';
   ctx.font = '6px "Press Start 2P", monospace';
   ctx.fillText('ARROWS/WASD: Move & Jump', W / 2, 170);
   ctx.fillText('Z/X/SHIFT: Scanner Attack', W / 2, 182);
@@ -320,21 +353,107 @@ function renderGameOver(ctx: CanvasRenderingContext2D): void {
 }
 
 function renderVictory(ctx: CanvasRenderingContext2D): void {
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#4CAF50';
-  ctx.font = '16px "Press Start 2P", monospace';
+
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('LEVEL CLEAR!', W / 2, H / 2 - 30);
+
+  // Title
+  ctx.fillStyle = '#4CAF50';
+  ctx.font = '14px "Press Start 2P", monospace';
+  ctx.fillText('LEVEL CLEAR!', W / 2, 22);
+
   ctx.fillStyle = '#FFD54F';
-  ctx.font = '10px "Press Start 2P", monospace';
-  ctx.fillText(`SCORE: ${player.score}`, W / 2, H / 2 + 5);
-  ctx.fillStyle = '#FFF';
   ctx.font = '8px "Press Start 2P", monospace';
-  ctx.fillText('All groceries scanned!', W / 2, H / 2 + 25);
-  ctx.fillStyle = '#90A4AE';
-  ctx.fillText('PRESS ENTER', W / 2, H / 2 + 50);
+  ctx.fillText(`SCORE: ${player.score}`, W / 2, 40);
+
+  if (victoryPhase === 'enter_name') {
+    // Name entry
+    ctx.fillStyle = '#FFF';
+    ctx.font = '7px "Press Start 2P", monospace';
+    ctx.fillText('ENTER YOUR INITIALS', W / 2, 68);
+
+    // Draw the 3 letter slots
+    const slotW = 20, gap = 6;
+    const startX = W / 2 - (slotW * 3 + gap * 2) / 2;
+    for (let i = 0; i < 3; i++) {
+      const sx = startX + i * (slotW + gap);
+      // Slot background
+      ctx.fillStyle = i < playerInitials.length ? '#2E7D32' : '#1a1a2e';
+      ctx.fillRect(sx, 78, slotW, 24);
+      ctx.strokeStyle = '#4CAF50';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(sx, 78, slotW, 24);
+      // Letter
+      ctx.fillStyle = '#FFF';
+      ctx.font = '12px "Press Start 2P", monospace';
+      if (i < playerInitials.length) {
+        ctx.fillText(playerInitials[i], sx + slotW / 2, 91);
+      } else if (i === playerInitials.length && Math.floor(nameBlinkTimer * 3) % 2 === 0) {
+        ctx.fillStyle = '#4CAF50';
+        ctx.fillText('_', sx + slotW / 2, 91);
+      }
+    }
+
+    ctx.fillStyle = '#90A4AE';
+    ctx.font = '6px "Press Start 2P", monospace';
+    ctx.fillText('TYPE A-Z, BACKSPACE TO DELETE', W / 2, 115);
+    if (playerInitials.length > 0) {
+      ctx.fillStyle = Math.floor(nameBlinkTimer * 2) % 2 === 0 ? '#FFD54F' : '#90A4AE';
+      ctx.fillText('PRESS ENTER TO SUBMIT', W / 2, 128);
+    }
+  } else {
+    // Show leaderboard
+    ctx.fillStyle = '#FFD54F';
+    ctx.font = '9px "Press Start 2P", monospace';
+    ctx.fillText('HIGH SCORES', W / 2, 65);
+
+    const scores = leaderboard.getScores();
+    const tableY = 82;
+
+    // Header
+    ctx.fillStyle = '#90A4AE';
+    ctx.font = '6px "Press Start 2P", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('RANK', W / 2 - 80, tableY);
+    ctx.fillText('NAME', W / 2 - 30, tableY);
+    ctx.textAlign = 'right';
+    ctx.fillText('SCORE', W / 2 + 80, tableY);
+
+    // Divider
+    ctx.fillStyle = '#4CAF50';
+    ctx.fillRect(W / 2 - 85, tableY + 6, 170, 1);
+
+    // Entries
+    for (let i = 0; i < 5; i++) {
+      const ey = tableY + 16 + i * 16;
+      const entry = scores[i];
+
+      ctx.textAlign = 'left';
+      if (entry) {
+        const isNew = entry.name === playerInitials.toUpperCase().slice(0, 3) && entry.score === player.score;
+        ctx.fillStyle = isNew ? '#FFD54F' : '#FFF';
+        ctx.font = '7px "Press Start 2P", monospace';
+        ctx.fillText(`${i + 1}.`, W / 2 - 80, ey);
+        ctx.fillText(entry.name, W / 2 - 30, ey);
+        ctx.textAlign = 'right';
+        ctx.fillText(String(entry.score).padStart(6, '0'), W / 2 + 80, ey);
+      } else {
+        ctx.fillStyle = '#424242';
+        ctx.font = '7px "Press Start 2P", monospace';
+        ctx.fillText(`${i + 1}.`, W / 2 - 80, ey);
+        ctx.fillText('---', W / 2 - 30, ey);
+        ctx.textAlign = 'right';
+        ctx.fillText('------', W / 2 + 80, ey);
+      }
+    }
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#90A4AE';
+    ctx.font = '6px "Press Start 2P", monospace';
+    ctx.fillText('PRESS ENTER TO CONTINUE', W / 2, 195);
+  }
 }
 
 // ─── Game Loop ──────────────────────────────────────────────────

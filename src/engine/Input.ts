@@ -1,11 +1,13 @@
 export class Input {
   private keys = new Map<string, boolean>();
   private pressed = new Map<string, boolean>();
+  private pressedKeys = new Map<string, boolean>();
 
   constructor() {
     window.addEventListener('keydown', (e) => {
       if (!this.keys.get(e.code)) {
         this.pressed.set(e.code, true);
+        this.pressedKeys.set(e.key, true);
       }
       this.keys.set(e.code, true);
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
@@ -28,6 +30,11 @@ export class Input {
 
   endFrame(): void {
     this.pressed.clear();
+    this.pressedKeys.clear();
+  }
+
+  keyJustPressed(key: string): boolean {
+    return this.pressedKeys.get(key) ?? this.pressedKeys.get(key.toLowerCase()) ?? false;
   }
 
   get left(): boolean {
