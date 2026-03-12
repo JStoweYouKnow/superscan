@@ -1,3 +1,5 @@
+import bgMusicUrl from '../assets/bg-music.mp3?url';
+
 export class GameAudio {
   private ctx: AudioContext | null = null;
   private bgAudio: HTMLAudioElement | null = null;
@@ -72,7 +74,7 @@ export class GameAudio {
 
   startMuzak(): void {
     if (this.bgAudio) return;
-    const url = import.meta.env.BASE_URL + 'bg-music.mp3';
+    const url = bgMusicUrl;
     const audio = new Audio(url);
     audio.loop = true;
     audio.volume = 0.4;
