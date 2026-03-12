@@ -1,7 +1,6 @@
 export class GameAudio {
   private ctx: AudioContext | null = null;
-  private muzakGain: GainNode | null = null;
-  private muzakPlaying = false;
+  private bgAudio: HTMLAudioElement | null = null;
 
   private getCtx(): AudioContext {
     if (!this.ctx) this.ctx = new AudioContext();
@@ -72,56 +71,20 @@ export class GameAudio {
   }
 
   startMuzak(): void {
-    if (this.muzakPlaying) return;
-    this.muzakPlaying = true;
-
-    const ctx = this.getCtx();
-    const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.06, ctx.currentTime);
-    masterGain.connect(ctx.destination);
-    this.muzakGain = masterGain;
-
-    // Grocery-store style: soft I-IV-V-I in C major, sine waves for smooth elevator music
-    const chords: number[][] = [
-      [131, 165, 196],     // C major (C3, E3, G3)
-      [175, 220, 262],     // F major (F3, A3, C4)
-      [196, 247, 294],     // G major (G3, B3, D4)
-      [131, 165, 196],     // C major
-    ];
-    const chordDuration = 2.8;
-    const fadeIn = 0.4;
-    const fadeOut = 0.5;
-
-    const scheduleChord = (startTime: number, chordIndex: number) => {
-      const freqs = chords[chordIndex];
-      for (const freq of freqs) {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, startTime);
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.2, startTime + fadeIn);
-        gain.gain.setValueAtTime(0.2, startTime + chordDuration - fadeOut);
-        gain.gain.linearRampToValueAtTime(0.001, startTime + chordDuration);
-        osc.connect(gain).connect(masterGain);
-        osc.start(startTime);
-        osc.stop(startTime + chordDuration);
-      }
-    };
-
-    const loop = () => {
-      if (!this.muzakPlaying) return;
-      const t = this.getCtx().currentTime;
-      for (let i = 0; i < 4; i++) scheduleChord(t + i * chordDuration, i);
-      setTimeout(loop, 4 * chordDuration * 1000);
-    };
-    loop();
+    if (this.bgAudio) return;
+    const url = import.meta.env.BASE_URL + 'bg-music.mp3';
+    const audio = new Audio(url);
+    audio.loop = true;
+    audio.volume = 0.4;
+    audio.play().catch(() => {});
+    this.bgAudio = audio;
   }
 
   stopMuzak(): void {
-    this.muzakPlaying = false;
-    if (this.muzakGain && this.ctx) {
-      this.muzakGain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 1);
+    if (this.bgAudio) {
+      this.bgAudio.pause();
+      this.bgAudio.currentTime = 0;
+      this.bgAudio = null;
     }
   }
 }
