@@ -58,6 +58,7 @@ function initGame(): void {
   enemies = level.enemySpawns.map(s => new Enemy(s.x, s.y, s.type, sprites));
 
   state = 'playing';
+  audio.startMuzak();
 }
 
 // ─── Update ─────────────────────────────────────────────────────
@@ -174,7 +175,10 @@ function updatePlaying(dt: number): void {
   particles.update(dt);
 
   // Game over
-  if (player.lives <= 0) state = 'gameover';
+  if (player.lives <= 0) {
+    state = 'gameover';
+    audio.stopMuzak();
+  }
 
   // Victory (reach checkout area at the end)
   if (player.x > level.widthPx - 100) {
