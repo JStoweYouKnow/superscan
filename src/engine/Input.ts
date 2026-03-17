@@ -64,4 +64,8 @@ export class Input {
   get pause(): boolean {
     return this.wasPressed('Escape') || this.wasPressed('KeyP');
   }
+
+  get quit(): boolean {
+    return this.wasPressed('KeyQ') || this.wasPressed('Backspace');
+  }
 }

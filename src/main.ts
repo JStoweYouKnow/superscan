@@ -81,6 +81,10 @@ function update(dt: number): void {
       if (input.pause) {
         state = 'playing';
         audio.resumeMuzak();
+      } else if (input.quit) {
+        state = 'title';
+        titleTimer = 0;
+        audio.stopMuzak();
       }
       break;
     case 'gameover':
@@ -319,7 +323,11 @@ function renderPaused(ctx: CanvasRenderingContext2D): void {
   ctx.font = '16px "Press Start 2P", monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('PAUSED', W / 2, H / 2);
+  ctx.fillText('PAUSED', W / 2, H / 2 - 10);
+  
+  ctx.fillStyle = '#FFF';
+  ctx.font = '8px "Press Start 2P", monospace';
+  ctx.fillText('PRESS Q TO QUIT TO TITLE', W / 2, H / 2 + 15);
 }
 
 function renderTitle(ctx: CanvasRenderingContext2D): void {
