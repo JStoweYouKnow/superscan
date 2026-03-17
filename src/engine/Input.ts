@@ -60,4 +60,8 @@ export class Input {
   get start(): boolean {
     return this.wasPressed('Enter') || this.wasPressed('Space');
   }
+
+  get pause(): boolean {
+    return this.wasPressed('Escape') || this.wasPressed('KeyP');
+  }
 }

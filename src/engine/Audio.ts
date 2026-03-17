@@ -89,4 +89,16 @@ export class GameAudio {
       this.bgAudio = null;
     }
   }
+
+  pauseMuzak(): void {
+    if (this.bgAudio) {
+      this.bgAudio.pause();
+    }
+  }
+
+  resumeMuzak(): void {
+    if (this.bgAudio) {
+      this.bgAudio.play().catch(() => {});
+    }
+  }
 }

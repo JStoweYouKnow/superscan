@@ -24,7 +24,7 @@ function overlap(a: Rect, b: Rect): boolean {
 }
 
 // ─── Game State ─────────────────────────────────────────────────
-type State = 'title' | 'playing' | 'gameover' | 'victory';
+type State = 'title' | 'playing' | 'gameover' | 'victory' | 'paused';
 
 const renderer = new Renderer('canvas1', W, H);
 const input = new Input();
@@ -70,7 +70,18 @@ function update(dt: number): void {
       if (input.start) initGame();
       break;
     case 'playing':
-      updatePlaying(dt);
+      if (input.pause) {
+        state = 'paused';
+        audio.pauseMuzak();
+      } else {
+        updatePlaying(dt);
+      }
+      break;
+    case 'paused':
+      if (input.pause) {
+        state = 'playing';
+        audio.resumeMuzak();
+      }
       break;
     case 'gameover':
       if (input.start) { state = 'title'; titleTimer = 0; }
@@ -199,6 +210,10 @@ function render(): void {
   switch (state) {
     case 'title': renderTitle(ctx); break;
     case 'playing': renderPlaying(ctx); break;
+    case 'paused': 
+      renderPlaying(ctx);
+      renderPaused(ctx);
+      break;
     case 'gameover': renderGameOver(ctx); break;
     case 'victory': renderVictory(ctx); break;
   }
@@ -295,6 +310,16 @@ function renderPlaying(ctx: CanvasRenderingContext2D): void {
 
   // HUD (screen-space)
   hud.render(ctx, player.score, player.health, player.lives);
+}
+
+function renderPaused(ctx: CanvasRenderingContext2D): void {
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#FFD54F';
+  ctx.font = '16px "Press Start 2P", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('PAUSED', W / 2, H / 2);
 }
 
 function renderTitle(ctx: CanvasRenderingContext2D): void {
