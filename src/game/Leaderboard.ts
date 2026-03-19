@@ -1,11 +1,13 @@
-const STORAGE_KEY = 'superscan_highscores';
-const MAX_ENTRIES = 5;
+import { collection, addDoc, onSnapshot, query, orderBy, limit } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 export interface ScoreEntry {
     name: string;
     score: number;
     date: string;
 }
+
+const MAX_ENTRIES = 5;
 
 export class Leaderboard {
     private scores: ScoreEntry[] = [];
@@ -15,16 +17,17 @@ export class Leaderboard {
     }
 
     private load(): void {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) this.scores = JSON.parse(raw);
-        } catch {
-            this.scores = [];
-        }
-    }
+        const q = query(
+            collection(db, "highscores"),
+            orderBy("score", "desc"),
+            limit(MAX_ENTRIES)
+        );
 
-    private save(): void {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.scores));
+        onSnapshot(q, (snapshot) => {
+            this.scores = snapshot.docs.map(doc => doc.data() as ScoreEntry);
+        }, (error) => {
+            console.error("Error fetching leaderboard: ", error);
+        });
     }
 
     getScores(): ScoreEntry[] {
@@ -36,15 +39,17 @@ export class Leaderboard {
         return score > this.scores[this.scores.length - 1].score;
     }
 
-    addScore(name: string, score: number): void {
+    async addScore(name: string, score: number): Promise<void> {
         const entry: ScoreEntry = {
             name: name.toUpperCase().slice(0, 3) || '???',
             score,
             date: new Date().toLocaleDateString(),
         };
-        this.scores.push(entry);
-        this.scores.sort((a, b) => b.score - a.score);
-        this.scores = this.scores.slice(0, MAX_ENTRIES);
-        this.save();
+        
+        try {
+            await addDoc(collection(db, "highscores"), entry);
+        } catch (e) {
+            console.error("Error adding score to leaderboard: ", e);
+        }
     }
 }

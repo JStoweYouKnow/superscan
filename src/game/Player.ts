@@ -38,8 +38,8 @@ export class Player {
   private scanRequested = false;
   private hasDoubleJumped = false;
   private state: 'idle' | 'run' | 'jump' | 'scan' = 'idle';
-  private startX: number;
-  private startY: number;
+  startX: number;
+  startY: number;
   private scaleX = 1;
   private scaleY = 1;
 

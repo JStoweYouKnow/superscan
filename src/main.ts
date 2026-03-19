@@ -37,6 +37,7 @@ const leaderboard = new Leaderboard();
 let victoryPhase: 'enter_name' | 'show_board' = 'enter_name';
 let playerInitials = '';
 let nameBlinkTimer = 0;
+let continueTimer = 0;
 let level: Level;
 let camera: Camera;
 let player: Player;
@@ -88,7 +89,30 @@ function update(dt: number): void {
       }
       break;
     case 'gameover':
-      if (input.start) { state = 'title'; titleTimer = 0; }
+      continueTimer -= dt;
+      if (input.start) {
+        const video = document.getElementById('outro-video') as HTMLVideoElement;
+        if (video) {
+          video.pause();
+          video.style.display = 'none';
+        }
+        player.lives = 3;
+        player.health = 3;
+        player.x = player.startX;
+        player.y = player.startY;
+        player.vx = 0;
+        player.vy = 0;
+        state = 'playing';
+        audio.startMuzak();
+      } else if (continueTimer <= 0) {
+        const video = document.getElementById('outro-video') as HTMLVideoElement;
+        if (video) {
+          video.pause();
+          video.style.display = 'none';
+        }
+        state = 'title';
+        titleTimer = 0;
+      }
       break;
     case 'victory':
       nameBlinkTimer += dt;
@@ -192,7 +216,16 @@ function updatePlaying(dt: number): void {
   // Game over
   if (player.lives <= 0) {
     state = 'gameover';
+    continueTimer = 9.99;
     audio.stopMuzak();
+    const video = document.getElementById('outro-video') as HTMLVideoElement;
+    if (video) {
+      video.style.display = 'block';
+      video.currentTime = 0;
+      // Loop the video while waiting for continue
+      video.loop = true;
+      video.play().catch(e => console.warn('Game over video playback failed:', e));
+    }
   }
 
   // Victory (reach checkout area at the end)
@@ -209,7 +242,14 @@ function updatePlaying(dt: number): void {
 
 function render(): void {
   const ctx = renderer.ctx;
-  renderer.clear();
+
+  // For game over, completely clear the canvas to transparent 
+  // so the HTML video behind it can be seen
+  if (state === 'gameover') {
+    ctx.clearRect(0, 0, W, H);
+  } else {
+    renderer.clear();
+  }
 
   switch (state) {
     case 'title': renderTitle(ctx); break;
@@ -375,18 +415,30 @@ function renderTitle(ctx: CanvasRenderingContext2D): void {
 }
 
 function renderGameOver(ctx: CanvasRenderingContext2D): void {
-  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  // Lighter overlay so video shines through
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#F44336';
-  ctx.font = '16px "Press Start 2P", monospace';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('GAME OVER', W / 2, H / 2 - 20);
+  
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'bottom';
+  
+  // High Score & Current Score
   ctx.fillStyle = '#FFF';
   ctx.font = '8px "Press Start 2P", monospace';
-  ctx.fillText(`SCORE: ${player.score}`, W / 2, H / 2 + 10);
+  const highScore = leaderboard.getScores()[0]?.score || 0;
+  ctx.fillText(`HI-SCORE: ${highScore}`, W - 10, H - 40);
+  ctx.fillText(`SCORE: ${player.score}`, W - 10, H - 30);
+  
+  // Continue Timer
+  ctx.fillStyle = '#FFD54F';
+  ctx.font = '12px "Press Start 2P", monospace';
+  const displayTime = Math.max(0, Math.floor(continueTimer));
+  ctx.fillText(`CONTINUE? ${displayTime}`, W - 10, H - 15);
+
+  // Instruction
   ctx.fillStyle = '#90A4AE';
-  ctx.fillText('PRESS ENTER TO RETRY', W / 2, H / 2 + 35);
+  ctx.font = '6px "Press Start 2P", monospace';
+  ctx.fillText('PRESS ENTER TO CONTINUE', W - 10, H - 5);
 }
 
 function renderVictory(ctx: CanvasRenderingContext2D): void {
